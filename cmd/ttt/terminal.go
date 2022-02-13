@@ -5,82 +5,114 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/urld/ttt"
 )
 
-// termApp provides means to interact with a passmgr store via terminal.
-type termApp struct {
+// appCtx provides means to interact with a passmgr store via terminal.
+type appCtx struct {
 	filename string
-	store    ttt.TimeTrackingDb
-}
+	*ttt.TimeTrackingDb
 
-func (t *termApp) Init() {
+	durationFmt
+}
+type durationFmt int
+
+const (
+	clock durationFmt = iota
+	hours
+	decimal
+)
+
+func (app *appCtx) Init() {
 	var err error
-	t.store, err = ttt.LoadDb(t.filename)
-	if err != nil {
-		quitErr(err)
-	}
+	app.TimeTrackingDb, err = ttt.LoadDb(app.filename)
+	quitErr(err)
 }
-func (t *termApp) InitEmpty() {
+func (app *appCtx) InitEmpty() {
 	var err error
-	t.store, err = ttt.CreateDb(t.filename)
-	if err != nil {
-		quitErr(err)
-	}
+	app.TimeTrackingDb, err = ttt.CreateDb(app.filename)
+	quitErr(err)
 }
-func (t *termApp) Start() {
-	err := t.store.StartRecord(time.Now())
-	if err != nil {
-		quitErr(err)
-	}
+func (app *appCtx) Start() {
+	err := app.StartRecord(time.Now())
+	quitErr(err)
 }
-func (t *termApp) End() {
-	err := t.store.EndRecord(time.Now())
-	if err != nil {
-		quitErr(err)
-	}
+func (app *appCtx) End() {
+	err := app.EndRecord(time.Now())
+	quitErr(err)
 }
-func (t *termApp) Report() {
-	records, err := t.store.GetRecords()
-	if err != nil {
-		quitErr(err)
+
+func (app *appCtx) Report(reportStart, reportEnd time.Time) {
+	days, err := app.GetBusinessDays(reportStart, reportEnd)
+	quitErr(err)
+
+	var saldo time.Duration
+	var totalWorked, totalWork time.Duration
+	var aggrWorked, aggrWork time.Duration
+	var previous ttt.BusinessDay
+
+	tw := table.NewWriter()
+	tw.SetOutputMirror(os.Stdout)
+	tw.SetStyle(table.StyleColoredBright)
+	tw.SetTitle("Report: %s to %s", fmtDate(reportStart), fmtDate(reportEnd))
+	tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "saldo"})
+
+	for _, d := range days {
+		if d.ISOWeek != previous.ISOWeek && previous.ISOWeek != 0 {
+			//print summary
+			tw.AppendRow(app.weekRow(previous.ISOWeek, aggrWorked, aggrWorked-aggrWork))
+			tw.AppendSeparator()
+			//reset
+			aggrWorked = 0
+			aggrWork = 0
+		}
+		// aggregate
+		delta := d.WorkedHours - d.WorkHours
+		saldo += delta
+		totalWorked += d.WorkedHours
+		totalWork += d.WorkHours
+		aggrWorked += d.WorkedHours
+		aggrWork += d.WorkHours
+		// print day
+		tw.AppendRow(app.dayRow(d.Date, d.WorkedHours, delta, saldo))
+		previous = d
 	}
-	for _, rec := range records {
-		fmt.Println(rec)
-	}
-	err = t.store.GetWeekAggr()
-	if err != nil {
-		quitErr(err)
-	}
-	err = t.store.GetDayAggr()
-	if err != nil {
-		quitErr(err)
+	tw.AppendRow(app.weekRow(previous.ISOWeek, aggrWorked, aggrWorked-aggrWork))
+	tw.AppendFooter(app.totalRow(totalWorked, totalWorked-totalWork))
+	tw.Render()
+}
+
+func (app *appCtx) dayRow(date time.Time, worked, delta, saldo time.Duration) table.Row {
+	return table.Row{
+		"",
+		fmtDate(date),
+		fmtDuration(worked, app.durationFmt),
+		fmtDuration(delta, app.durationFmt),
+		fmtDuration(saldo, app.durationFmt),
 	}
 }
 
-func askConfirm(prompt string, a ...interface{}) bool {
-	switch strings.ToLower(ask(prompt+" [Y/n] ", a...)) {
-	case "y", "":
-		return true
-	case "n":
-		return false
-	default:
-		return askConfirm(prompt)
+func (app *appCtx) weekRow(week int, worked, delta time.Duration) table.Row {
+	return table.Row{
+		week,
+		"",
+		fmtDuration(worked, app.durationFmt),
+		fmtDuration(delta, app.durationFmt),
+		"",
 	}
 }
 
-func ask(prompt string, a ...interface{}) string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf(prompt, a...)
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		quitErr(err)
+func (app *appCtx) totalRow(worked, saldo time.Duration) table.Row {
+	return table.Row{
+		"Total",
+		"",
+		fmtDuration(worked, app.durationFmt),
+		"",
+		fmtDuration(saldo, app.durationFmt),
 	}
-	return strings.TrimRight(text, "\r\n")
 }

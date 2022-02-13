@@ -59,7 +59,7 @@ func parseTime(s string) time.Time {
 	return t
 }
 
-func withDb(csvFile string, t *testing.T) TimeTrackingDb {
+func withDb(csvFile string, t *testing.T) *TimeTrackingDb {
 	f, err := os.CreateTemp(t.TempDir(), csvFile+".ttt_test_*")
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func withDb(csvFile string, t *testing.T) TimeTrackingDb {
 	return tdb
 }
 
-func compareDb(expectedDb, actualDb TimeTrackingDb, t *testing.T) {
+func compareDb(expectedDb, actualDb *TimeTrackingDb, t *testing.T) {
 	cmd := exec.Command("sqldiff", expectedDb.filename, actualDb.filename)
 	out, err := cmd.Output()
 	if err != nil {

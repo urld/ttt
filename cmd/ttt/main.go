@@ -8,15 +8,7 @@ import (
 	"flag"
 	"os/user"
 	"path/filepath"
-)
-
-type command int
-
-const (
-	startCmd command = iota
-	endCmd
-	reportCmd
-	noCmd
+	"time"
 )
 
 func main() {
@@ -36,32 +28,44 @@ func main() {
 	case endCmd:
 		app.End()
 	case reportCmd:
-		app.Report()
+		app.Report(time.Now().Add(time.Hour*24*-365), time.Now())
 	}
 }
 
-func parseCmd() (command, termApp) {
+type command string
+
+const (
+	startCmd  command = "start"
+	endCmd    command = "end"
+	reportCmd command = "report"
+)
+
+func parseCmd() (command, appCtx) {
 	user, err := user.Current()
 	if err != nil {
 		quitErr(err)
 	}
-	defaultFilename := filepath.Join(user.HomeDir, ".ttt.db")
+	defaultFilename := filepath.Join(user.HomeDir, ".ttt.sqlite")
 
-	// cmd parsing:
-	filename := flag.String("file", defaultFilename, "specify the ttt database")
+	var app appCtx
+	app.filename = *flag.String("file", defaultFilename, "specify the ttt database")
+	flag.Func("duration", "the format that is used to print durations: clock|hours|decimal",
+		func(arg string) error {
+			switch arg {
+			case "clock":
+				app.durationFmt = clock
+			case "hours":
+				app.durationFmt = hours
+			case "decimal":
+				app.durationFmt = decimal
+			}
+			return nil
+		})
 	flag.Parse()
 
-	cmd := noCmd
+	cmd := reportCmd
 	if flag.NArg() >= 1 {
-		switch flag.Arg(0) {
-		case "start":
-			cmd = startCmd
-		case "end":
-			cmd = endCmd
-		case "report":
-			cmd = reportCmd
-		}
+		cmd = command(flag.Arg(0))
 	}
-
-	return cmd, termApp{filename: calcFilename(*filename)}
+	return cmd, app
 }

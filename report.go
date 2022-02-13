@@ -5,70 +5,46 @@
 package ttt
 
 import (
-	"fmt"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func (t *TimeTrackingDb) GetRecords() ([]Record, error) {
-	rows, err := t.db.Query("SELECT r.id, r.start, r.end, r.type_id, t.type FROM records AS r INNER JOIN types AS t ON t.id = r.type_id;")
+func (t *TimeTrackingDb) GetBusinessDays(from, to time.Time) ([]BusinessDay, error) {
+	rows, err := t.db.Query("SELECT strftime('%W', r.start) as week_no, date(r.start) AS date, SUM(strftime('%s',r.end)-strftime('%s',r.start)) AS duration FROM records AS r WHERE r.Start BETWEEN ? AND ? AND r.End IS NOT NULL GROUP BY date ORDER BY date;",
+		from, to)
 	if err != nil {
-		return nil, err
+		return []BusinessDay{}, err
 	}
 	defer rows.Close()
-	var records []Record
+
+	var result []BusinessDay
 	for rows.Next() {
-		var rec Record
-		err = rows.Scan(&rec.id, &rec.Start, &rec.End, &rec.typeId, &rec.Type)
+		var weekNo int
+		var date string
+		var duration time.Duration
+		err = rows.Scan(&weekNo, &date, &duration)
 		if err != nil {
-			return records, err
+			return result, err
 		}
-		if rec.End != nil {
-			rec.Duration = rec.End.Sub(*rec.Start)
-			records = append(records, rec)
-		}
+
+		day := BusinessDay{}
+		day.ISOWeek = weekNo
+		day.Date, _ = time.Parse("2006-01-02", date)
+		day.WorkedHours = duration * time.Second
+		day.WorkHours = t.config.workingHours[day.Date.Weekday()]
+		// TODO: load holiday data
+		result = append(result, day)
 	}
-	return records, nil
+	return result, nil
 }
 
-func (t *TimeTrackingDb) GetWeekAggr() error {
-	rows, err := t.db.Query("SELECT strftime('%W', r.start) AS week, SUM(strftime('%s',r.end)-strftime('%s',r.start)) AS duration FROM records AS r WHERE r.Start BETWEEN ? AND ? GROUP BY week ORDER BY week;",
-		fromDate(), time.Now())
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var week int
-		var duration time.Duration
-		err = rows.Scan(&week, &duration)
-		if err != nil {
-			return err
-		}
-		fmt.Println(week, duration*time.Second)
-	}
-	return nil
-}
-
-func (t *TimeTrackingDb) GetDayAggr() error {
-	rows, err := t.db.Query("SELECT strftime('%W',r.start) as week, date(r.start) AS day, SUM(strftime('%s',r.end)-strftime('%s',r.start)) AS duration FROM records AS r WHERE r.Start BETWEEN ? AND ? GROUP BY day ORDER BY day;",
-		fromDate(), time.Now())
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var week int
-		var day string
-		var duration time.Duration
-		err = rows.Scan(&week, &day, &duration)
-		if err != nil {
-			return err
-		}
-		fmt.Println(week, day, duration*time.Second)
-	}
-	return nil
+type BusinessDay struct {
+	ISOWeek     int
+	Date        time.Time
+	WorkedHours time.Duration
+	WorkHours   time.Duration
+	Description string
 }
 
 func fromDate() time.Time {

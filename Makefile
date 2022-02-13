@@ -7,7 +7,7 @@ RELEASE_FILE = $(PACKAGE)_$(VERSION)_$(shell go env GOOS)-$(shell go env GOARCH)
 .PHONY: all clean clean_build clean_dist dist build install test
 
 
-all: install
+all: install test
 
 
 
@@ -26,7 +26,7 @@ test:
 	go test -v github.com/urld/ttt/...
 
 
-install: test
+install:
 	go install github.com/urld/ttt/cmd/ttt
 
 

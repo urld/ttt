@@ -5,29 +5,18 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 )
 
 func quitErr(err error) {
+	if err == nil {
+		return
+	}
 	fmt.Fprintln(os.Stderr, err.Error())
 	os.Exit(1)
-}
-
-func calcFilename(filename string) string {
-	if isDir(filename) {
-		return filepath.Join(filename, ".passmgr_store")
-	}
-	return filename
-}
-
-func isDir(filename string) bool {
-	info, err := os.Stat(filename)
-	if err != nil {
-		return false
-	}
-	return info.IsDir()
 }
 
 func isFile(filename string) bool {
@@ -36,4 +25,25 @@ func isFile(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+func askConfirm(prompt string, a ...interface{}) bool {
+	switch strings.ToLower(ask(prompt+" [Y/n] ", a...)) {
+	case "y", "":
+		return true
+	case "n":
+		return false
+	default:
+		return askConfirm(prompt)
+	}
+}
+
+func ask(prompt string, a ...interface{}) string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf(prompt, a...)
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		quitErr(err)
+	}
+	return strings.TrimRight(text, "\r\n")
 }

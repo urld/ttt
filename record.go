@@ -19,12 +19,9 @@ var (
 )
 
 type Record struct {
-	id       int
-	Start    *time.Time
-	End      *time.Time
-	typeId   int
-	Type     string
-	Duration time.Duration
+	id    int
+	Start *time.Time
+	End   *time.Time
 }
 
 func (r *Record) Active() bool {
@@ -41,7 +38,7 @@ func (t *TimeTrackingDb) StartRecord(dts time.Time) error {
 	} else {
 		dts = t.cleanDts(dts)
 		rec.Start = &dts
-		_, err := t.db.Exec("INSERT INTO records (type_id, start) VALUES(?, ?);", rec.typeId, rec.Start)
+		_, err := t.db.Exec("INSERT INTO records (start) VALUES(?);", rec.Start)
 		return err
 	}
 }
@@ -54,7 +51,7 @@ func (t *TimeTrackingDb) EndRecord(dts time.Time) error {
 	if rec.Active() {
 		dts = t.cleanDts(dts)
 		rec.End = &dts
-		_, err := t.db.Exec("UPDATE records SET end=? WHERE id=?;", rec.End, rec.id)
+		_, err := t.db.Exec("UPDATE records SET end=? WHERE rowid=?;", rec.End, rec.id)
 		return err
 	} else {
 		return fmt.Errorf("%w", NoActiveRecordError)
@@ -62,9 +59,9 @@ func (t *TimeTrackingDb) EndRecord(dts time.Time) error {
 }
 
 func (t *TimeTrackingDb) GetCurrentRecord() (Record, error) {
-	row := t.db.QueryRow("SELECT r.id, r.start, r.end, t.type FROM records AS r INNER JOIN types AS t ON r.type_id = t.id WHERE r.end IS NULL or r.end = '';")
+	row := t.db.QueryRow("SELECT r.rowid, r.start, r.end FROM records AS r WHERE r.end IS NULL or r.end = '';")
 	rec := Record{}
-	err := row.Scan(&rec.id, &rec.Start, &rec.End, &rec.Type)
+	err := row.Scan(&rec.id, &rec.Start, &rec.End)
 	if err == sql.ErrNoRows {
 		return rec, nil
 	}
@@ -72,6 +69,5 @@ func (t *TimeTrackingDb) GetCurrentRecord() (Record, error) {
 }
 
 func (t *TimeTrackingDb) cleanDts(dts time.Time) time.Time {
-	res, _ := time.ParseDuration(t.config.inputResolution)
-	return dts.Round(res)
+	return dts.Round(t.config.inputResolution)
 }

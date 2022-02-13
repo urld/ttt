@@ -83,12 +83,19 @@ func baseSchema() schemaPatch {
 func schemaPatches() []schemaPatch {
 	return []schemaPatch{
 		{
-			"CREATE TABLE types (id INTEGER PRIMARY KEY AUTOINCREMENT, type text);",
-			"INSERT INTO types VALUES(0, 'work');",
-			"CREATE TABLE records (id INTEGER PRIMARY KEY AUTOINCREMENT, type_id int, start datetime, end datetime, FOREIGN KEY(type_id) REFERENCES types(id));",
 			"CREATE TABLE config (property text, value text);",
 			"INSERT INTO config VALUES('input_resolution', '15m');",
 			"INSERT INTO config VALUES('break_threshold', '6h'), ('break_deduction', '30m');",
+			"INSERT INTO config VALUES('monday_hours', '7h 42m');",
+			"INSERT INTO config VALUES('tuesday_hours', '7h 42m');",
+			"INSERT INTO config VALUES('wednesday_hours', '7h 42m');",
+			"INSERT INTO config VALUES('thursday_hours', '7h 42m');",
+			"INSERT INTO config VALUES('friday_hours', '7h 42m');",
+			"INSERT INTO config VALUES('saturday_hours', '0h');",
+			"INSERT INTO config VALUES('sunday_hours', '0h');",
+			"INSERT INTO config VALUES('holidays', 'AT');",
+
+			"CREATE TABLE records (start datetime, end datetime);",
 		},
 	}
 
