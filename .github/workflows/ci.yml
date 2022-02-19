@@ -1,4 +1,4 @@
-name: Go
+name: CI
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Install xmllint
+    - name: Install tools
       run: sudo apt-get install -y sqlite3
 
     - uses: actions/checkout@v2
