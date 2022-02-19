@@ -44,7 +44,6 @@ type BusinessDay struct {
 	Date        time.Time
 	WorkedHours time.Duration
 	WorkHours   time.Duration
-	Description string
 }
 
 func fromDate() time.Time {

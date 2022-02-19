@@ -11,11 +11,15 @@ all: install test
 
 
 
-dist: build
+dist: build shrink
 	mkdir -p $(RELEASE_DIR)
 	mkdir -p $(BUILD_DIR)/licenses
 	cp LICENSE $(BUILD_DIR)/licenses/ttt.LICENSE
 	tar -cvzf  $(RELEASE_DIR)/$(RELEASE_FILE).tar.gz $(BUILD_DIR) --transform='s/$(BUILD_DIR)/$(RELEASE_FILE)/g'
+
+shrink: build
+	strip $(BUILD_DIR)/ttt*
+	upx $(BUILD_DIR)/ttt*
 
 build: clean_build
 	mkdir -p $(BUILD_DIR)
