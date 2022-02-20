@@ -80,7 +80,7 @@ func withDb(csvFile string, t *testing.T) *TimeTrackingDb {
 }
 
 func compareDb(expectedDb, actualDb *TimeTrackingDb, t *testing.T) {
-	cmd := exec.Command("sqldiff", expectedDb.filename, actualDb.filename)
+	cmd := exec.Command("sqldiff", "--table", "records", expectedDb.filename, actualDb.filename)
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatal(err)
