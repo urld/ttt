@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install tools
-      run: sudo apt-get install -y sqlite3 make upx
+      run: sudo apt-get install -y sqlite3 make upx gcc gcc-mingw-w64-x86-64
 
     - uses: actions/checkout@v2
 
