@@ -6,15 +6,32 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os/user"
 	"path/filepath"
 	"time"
 )
 
+var usage string = `ttt - time tracking terminal
+
+Usage:
+	ttt <command> [options]
+
+The commands are:
+
+	start
+	end
+	status
+	report
+
+The options are:
+
+`
+
 func main() {
 	cmd, app := parseCmd()
 
-	// setup:
+	// setup:u
 	if isFile(app.filename) {
 		app.Init()
 	} else {
@@ -27,17 +44,24 @@ func main() {
 		app.Start()
 	case endCmd:
 		app.End()
+	case statusCmd:
+		app.Status()
 	case reportCmd:
 		app.Report(time.Now().Add(time.Hour*24*-365), time.Now())
+	case defaultCmd:
+		app.Report(time.Now().Add(time.Hour*24*-365), time.Now())
+		app.Status()
 	}
 }
 
 type command string
 
 const (
-	startCmd  command = "start"
-	endCmd    command = "end"
-	reportCmd command = "report"
+	startCmd   command = "start"
+	endCmd     command = "end"
+	statusCmd  command = "status"
+	reportCmd  command = "report"
+	defaultCmd command = ""
 )
 
 func parseCmd() (command, appCtx) {
@@ -49,7 +73,7 @@ func parseCmd() (command, appCtx) {
 
 	var app appCtx
 	app.filename = *flag.String("file", defaultFilename, "specify the ttt database")
-	flag.Func("duration", "the format that is used to print durations: clock|hours|decimal",
+	flag.Func("duration", "the `format` that is used to print durations: clock|hours|decimal (default \"clock\")",
 		func(arg string) error {
 			switch arg {
 			case "clock":
@@ -61,9 +85,14 @@ func parseCmd() (command, appCtx) {
 			}
 			return nil
 		})
+	flag.Usage = func() {
+		w := flag.CommandLine.Output()
+		fmt.Fprint(w, usage)
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
-	cmd := reportCmd
+	cmd := defaultCmd
 	if flag.NArg() >= 1 {
 		cmd = command(flag.Arg(0))
 	}

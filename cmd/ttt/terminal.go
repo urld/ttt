@@ -5,10 +5,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 
 	"github.com/urld/ttt"
 )
@@ -47,6 +49,22 @@ func (app *appCtx) End() {
 	quitErr(err)
 }
 
+func (app *appCtx) Status() {
+	rec, err := app.GetCurrentRecord()
+	quitErr(err)
+	if rec == (ttt.Record{}) {
+		fmt.Println("No records have been tracked yet. Use `ttt start` to begin your first time tracking record.")
+	} else if rec.Active() {
+		duration := time.Now().Sub(*rec.Start)
+		fmt.Printf("Current record is active for %s (since %s)\n", fmtDurationTrim(duration, app.durationFmt), fmtTime(*rec.Start))
+		fmt.Println("Use `ttt end` to end the record.")
+	} else {
+		duration := rec.End.Sub(*rec.Start)
+		fmt.Println("No record is active at the moment. Use `ttt start` to begin a new record.")
+		fmt.Printf("Last record was active for %s (from %s to %s )\n", fmtDurationTrim(duration, app.durationFmt), fmtTime(*rec.Start), fmtTime(*rec.End))
+	}
+}
+
 func (app *appCtx) Report(reportStart, reportEnd time.Time) {
 	days, err := app.GetBusinessDays(reportStart, reportEnd)
 	quitErr(err)
@@ -59,6 +77,8 @@ func (app *appCtx) Report(reportStart, reportEnd time.Time) {
 	tw := table.NewWriter()
 	tw.SetOutputMirror(os.Stdout)
 	tw.SetStyle(table.StyleColoredBright)
+	tw.Style().Format.Header = text.FormatTitle
+	tw.Style().Format.Footer = text.FormatTitle
 	tw.SetTitle("Report: %s to %s", fmtDate(reportStart), fmtDate(reportEnd))
 	tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "saldo"})
 

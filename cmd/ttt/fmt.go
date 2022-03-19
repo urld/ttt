@@ -6,11 +6,20 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
 func fmtDate(d time.Time) string {
 	return d.Format("2006-01-02 Mon")
+}
+
+func fmtTime(d time.Time) string {
+	return d.Format("Mon 2006-01-02 15:04:05")
+}
+
+func fmtDurationTrim(d time.Duration, style durationFmt) string {
+	return strings.TrimSpace(fmtDuration(d, style))
 }
 
 func fmtDuration(d time.Duration, style durationFmt) string {
