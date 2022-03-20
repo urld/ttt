@@ -21,6 +21,9 @@ type appCtx struct {
 	*ttt.TimeTrackingDb
 
 	durationFmt
+	resolution time.Duration
+
+	opTime time.Time
 }
 type durationFmt int
 
@@ -33,6 +36,7 @@ const (
 func (app *appCtx) Init() {
 	var err error
 	app.TimeTrackingDb, err = ttt.LoadDb(app.filename)
+	app.opTime = app.cleanDts(time.Now())
 	quitErr(err)
 }
 func (app *appCtx) InitEmpty() {
@@ -41,11 +45,11 @@ func (app *appCtx) InitEmpty() {
 	quitErr(err)
 }
 func (app *appCtx) Start() {
-	err := app.StartRecord(time.Now())
+	err := app.StartRecord(app.opTime)
 	quitErr(err)
 }
 func (app *appCtx) End() {
-	err := app.EndRecord(time.Now())
+	err := app.EndRecord(app.opTime)
 	quitErr(err)
 }
 
@@ -53,15 +57,15 @@ func (app *appCtx) Status() {
 	rec, err := app.GetCurrentRecord()
 	quitErr(err)
 	if rec == (ttt.Record{}) {
-		fmt.Println("No records have been tracked yet. Use `ttt start` to begin your first time tracking record.")
+		fmt.Println("No records have been tracked yet. Use `ttt start` to begin a new record.")
 	} else if rec.Active() {
 		duration := time.Now().Sub(*rec.Start)
-		fmt.Printf("Current record is active for %s (since %s)\n", fmtDurationTrim(duration, app.durationFmt), fmtTime(*rec.Start))
+		fmt.Printf("Current record is active since %s, (%s)\n", fmtTime(*rec.Start), fmtDurationTrim(duration, app.durationFmt))
 		fmt.Println("Use `ttt end` to end the record.")
 	} else {
 		duration := rec.End.Sub(*rec.Start)
 		fmt.Println("No record is active at the moment. Use `ttt start` to begin a new record.")
-		fmt.Printf("Last record was active for %s (from %s to %s )\n", fmtDurationTrim(duration, app.durationFmt), fmtTime(*rec.Start), fmtTime(*rec.End))
+		fmt.Printf("Last record was active from %s to %s, (%s)\n", fmtTime(*rec.Start), fmtTime(*rec.End), fmtDurationTrim(duration, app.durationFmt))
 	}
 }
 
@@ -135,4 +139,8 @@ func (app *appCtx) totalRow(worked, saldo time.Duration) table.Row {
 		"",
 		fmtDuration(saldo, app.durationFmt),
 	}
+}
+
+func (app *appCtx) cleanDts(dts time.Time) time.Time {
+	return dts.Round(app.resolution)
 }

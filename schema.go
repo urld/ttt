@@ -84,7 +84,6 @@ func schemaPatches() []schemaPatch {
 	return []schemaPatch{
 		{
 			"CREATE TABLE config (property text, value text);",
-			"INSERT INTO config VALUES('input_resolution', '15m');",
 			"INSERT INTO config VALUES('break_threshold', '6h'), ('break_deduction', '30m');",
 			"INSERT INTO config VALUES('monday_hours', '7h 42m');",
 			"INSERT INTO config VALUES('tuesday_hours', '7h 42m');",

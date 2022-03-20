@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -17,6 +18,12 @@ func quitErr(err error) {
 	}
 	fmt.Fprintln(os.Stderr, err.Error())
 	os.Exit(1)
+}
+
+func quitParamErr(err string) {
+	fmt.Println(err)
+	flag.Usage()
+	os.Exit(2)
 }
 
 func isFile(filename string) bool {

@@ -12,7 +12,7 @@ import (
 func TestStartNewRecord(t *testing.T) {
 	tdb := withDb("someRecords.csv", t)
 	defer tdb.Close()
-	err := tdb.StartRecord(parseTime("2022-02-02T09:17:02+01:00"))
+	err := tdb.StartRecord(parseTime("2022-02-02T09:15:00+01:00"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestStartRecordAllreadyActive(t *testing.T) {
 func TestEndRecord(t *testing.T) {
 	tdb := withDb("someRecordsWithStartNew.csv", t)
 	defer tdb.Close()
-	err := tdb.EndRecord(parseTime("2022-02-02T17:59:00+01:00"))
+	err := tdb.EndRecord(parseTime("2022-02-02T18:00:00+01:00"))
 	if err != nil {
 		t.Fatal(err)
 	}

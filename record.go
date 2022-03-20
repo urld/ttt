@@ -36,7 +36,6 @@ func (t *TimeTrackingDb) StartRecord(dts time.Time) error {
 	if rec.Active() {
 		return fmt.Errorf("%w", ActiveRecordExistsError)
 	} else {
-		dts = t.cleanDts(dts)
 		rec.Start = &dts
 		_, err := t.db.Exec("INSERT INTO records (start) VALUES(?);", rec.Start)
 		return err
@@ -49,7 +48,6 @@ func (t *TimeTrackingDb) EndRecord(dts time.Time) error {
 		return err
 	}
 	if rec.Active() {
-		dts = t.cleanDts(dts)
 		rec.End = &dts
 		_, err := t.db.Exec("UPDATE records SET end=? WHERE rowid=?;", rec.End, rec.id)
 		return err
@@ -66,8 +64,4 @@ func (t *TimeTrackingDb) GetCurrentRecord() (Record, error) {
 		return rec, nil
 	}
 	return rec, err
-}
-
-func (t *TimeTrackingDb) cleanDts(dts time.Time) time.Time {
-	return dts.Round(t.config.inputResolution)
 }

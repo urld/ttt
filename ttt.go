@@ -22,11 +22,10 @@ type TimeTrackingDb struct {
 }
 
 type timeTrackingConfig struct {
-	inputResolution time.Duration
-	breakThreshold  time.Duration
-	breakDeduction  time.Duration
-	workingHours    [7]time.Duration
-	holidays        string
+	breakThreshold time.Duration
+	breakDeduction time.Duration
+	workingHours   [7]time.Duration
+	holidays       string
 }
 
 func LoadDb(filename string) (*TimeTrackingDb, error) {
@@ -79,8 +78,6 @@ func (t *TimeTrackingDb) loadConfig() error {
 		}
 
 		switch property {
-		case "input_resolution":
-			t.config.inputResolution, errs = parseDuration(value, errs)
 		case "break_deduction":
 			t.config.breakDeduction, errs = parseDuration(value, errs)
 		case "break_threshold":

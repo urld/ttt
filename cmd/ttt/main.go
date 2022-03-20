@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os/user"
@@ -82,9 +83,24 @@ func parseCmd() (command, appCtx) {
 				app.durationFmt = hours
 			case "decimal":
 				app.durationFmt = decimal
+			default:
+				return errors.New("Unrecognized duration format. Please use clock|hours|decimal")
 			}
 			return nil
 		})
+	flag.Func("time", "specify record start or end time with 1m resolution. format=now|HH:mm|YYYY-MM-DD HH:mm (default \"now\" with specified resolution)",
+		func(arg string) error {
+			if arg == "now" {
+				app.opTime = time.Now().Round(time.Minute)
+			}
+			if len(arg) > 5 {
+				app.opTime, err = time.Parse("2006-01-02 15:04", arg)
+			} else {
+				app.opTime, err = time.Parse("15:04", arg)
+			}
+			return err
+		})
+	flag.DurationVar(&app.resolution, "resolution", 15*time.Minute, "specify the resolution the input timestamps should be rounded to.")
 	flag.Usage = func() {
 		w := flag.CommandLine.Output()
 		fmt.Fprint(w, usage)
@@ -93,8 +109,10 @@ func parseCmd() (command, appCtx) {
 	flag.Parse()
 
 	cmd := defaultCmd
-	if flag.NArg() >= 1 {
+	if flag.NArg() == 1 {
 		cmd = command(flag.Arg(0))
+	} else if flag.NArg() > 1 {
+		quitParamErr("Unrecognized arguments after command: " + fmt.Sprint(flag.Args()[1:]))
 	}
 	return cmd, app
 }
