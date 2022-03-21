@@ -30,17 +30,19 @@ The options are:
 `
 
 func main() {
-	cmd, app := parseCmd()
+	app := new(appCtx)
+	app.InitDefaults()
+	app.ParseCmd()
 
-	// setup:u
+	// setup
 	if isFile(app.filename) {
-		app.Init()
+		app.InitDb()
 	} else {
-		app.InitEmpty()
+		app.InitEmptyDb()
 	}
 
 	// exec:
-	switch cmd {
+	switch app.cmd {
 	case startCmd:
 		app.Start()
 	case endCmd:
@@ -65,14 +67,13 @@ const (
 	defaultCmd command = ""
 )
 
-func parseCmd() (command, appCtx) {
+func (app *appCtx) ParseCmd() {
 	user, err := user.Current()
 	if err != nil {
 		quitErr(err)
 	}
 	defaultFilename := filepath.Join(user.HomeDir, ".ttt.sqlite")
 
-	var app appCtx
 	app.filename = *flag.String("file", defaultFilename, "specify the ttt database")
 	flag.Func("duration", "the `format` that is used to print durations: clock|hours|decimal (default \"clock\")",
 		func(arg string) error {
@@ -92,8 +93,7 @@ func parseCmd() (command, appCtx) {
 		func(arg string) error {
 			if arg == "now" {
 				app.opTime = time.Now().Round(time.Minute)
-			}
-			if len(arg) > 5 {
+			} else if len(arg) > 5 {
 				app.opTime, err = time.Parse("2006-01-02 15:04", arg)
 			} else {
 				app.opTime, err = time.Parse("15:04", arg)
@@ -108,11 +108,9 @@ func parseCmd() (command, appCtx) {
 	}
 	flag.Parse()
 
-	cmd := defaultCmd
 	if flag.NArg() == 1 {
-		cmd = command(flag.Arg(0))
+		app.cmd = command(flag.Arg(0))
 	} else if flag.NArg() > 1 {
 		quitParamErr("Unrecognized arguments after command: " + fmt.Sprint(flag.Args()[1:]))
 	}
-	return cmd, app
 }

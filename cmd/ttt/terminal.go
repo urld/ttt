@@ -15,7 +15,6 @@ import (
 	"github.com/urld/ttt"
 )
 
-// appCtx provides means to interact with a passmgr store via terminal.
 type appCtx struct {
 	filename string
 	*ttt.TimeTrackingDb
@@ -23,6 +22,7 @@ type appCtx struct {
 	durationFmt
 	resolution time.Duration
 
+	cmd    command
 	opTime time.Time
 }
 type durationFmt int
@@ -33,13 +33,17 @@ const (
 	decimal
 )
 
-func (app *appCtx) Init() {
+func (app *appCtx) InitDefaults() {
+	app.cmd = defaultCmd
+	app.opTime = app.cleanDts(time.Now())
+}
+
+func (app *appCtx) InitDb() {
 	var err error
 	app.TimeTrackingDb, err = ttt.LoadDb(app.filename)
-	app.opTime = app.cleanDts(time.Now())
 	quitErr(err)
 }
-func (app *appCtx) InitEmpty() {
+func (app *appCtx) InitEmptyDb() {
 	var err error
 	app.TimeTrackingDb, err = ttt.CreateDb(app.filename)
 	quitErr(err)
