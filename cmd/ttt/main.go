@@ -23,6 +23,7 @@ The commands are:
 	start
 	end
 	status
+	day
 	report
 
 The options are:
@@ -49,6 +50,8 @@ func main() {
 		app.End()
 	case statusCmd:
 		app.Status()
+	case recordDayCmd:
+		app.RecordDay()
 	case reportCmd:
 		app.Report(time.Now().Add(time.Hour*24*-365), time.Now())
 	case defaultCmd:
@@ -60,11 +63,12 @@ func main() {
 type command string
 
 const (
-	startCmd   command = "start"
-	endCmd     command = "end"
-	statusCmd  command = "status"
-	reportCmd  command = "report"
-	defaultCmd command = ""
+	startCmd     command = "start"
+	endCmd       command = "end"
+	statusCmd    command = "status"
+	recordDayCmd command = "day"
+	reportCmd    command = "report"
+	defaultCmd   command = ""
 )
 
 func (app *appCtx) ParseCmd() {
