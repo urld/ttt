@@ -77,7 +77,7 @@ func (app *appCtx) Status() {
 	if rec == (ttt.Record{}) {
 		fmt.Println("No records have been tracked yet. Use `ttt start` to begin a new record.")
 	} else if rec.Active() {
-		duration := time.Now().Sub(*rec.Start)
+		duration := time.Since(*rec.Start)
 		fmt.Printf("Current record is active since %s, (%s)\n", fmtTime(*rec.Start), fmtDurationTrim(duration, app.durationFmt))
 		fmt.Println("Use `ttt end` to end the record.")
 	} else {
@@ -113,12 +113,12 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 	go func() {
 		defer close(ec)
 
-		var saldo time.Duration
+		var balance time.Duration
 		var totalWorked, totalWork time.Duration
 		var aggrWorked, aggrWork time.Duration
 		var previous ttt.BusinessDay
 
-		tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "saldo"})
+		tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "balance"})
 
 		for d := range days {
 			if d.ISOWeek != previous.ISOWeek && previous.ISOWeek != 0 {
@@ -132,13 +132,13 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 			// aggregate
 			effWorked := app.EffWorkedHours(d)
 			delta := effWorked - d.WorkHours
-			saldo += delta
+			balance += delta
 			totalWorked += effWorked
 			totalWork += d.WorkHours
 			aggrWorked += effWorked
 			aggrWork += d.WorkHours
 			// print day
-			tw.AppendRow(app.dayRow(d.Date, d.WorkedHours, delta, saldo))
+			tw.AppendRow(app.dayRow(d.Date, d.WorkedHours, delta, balance))
 			previous = d
 		}
 		tw.AppendRow(app.weekRow(previous.ISOWeek, aggrWorked, aggrWorked-aggrWork))
@@ -148,13 +148,13 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 	return ec
 }
 
-func (app *appCtx) dayRow(date time.Time, worked, delta, saldo time.Duration) table.Row {
+func (app *appCtx) dayRow(date time.Time, worked, delta, balance time.Duration) table.Row {
 	return table.Row{
 		"",
 		fmtDate(date),
 		fmtDuration(worked, app.durationFmt),
 		fmtDuration(delta, app.durationFmt),
-		fmtDuration(saldo, app.durationFmt),
+		fmtDuration(balance, app.durationFmt),
 	}
 }
 
@@ -168,13 +168,13 @@ func (app *appCtx) weekRow(week int, worked, delta time.Duration) table.Row {
 	}
 }
 
-func (app *appCtx) totalRow(worked, saldo time.Duration) table.Row {
+func (app *appCtx) totalRow(worked, balance time.Duration) table.Row {
 	return table.Row{
 		"Total",
 		"",
 		fmtDuration(worked, app.durationFmt),
 		"",
-		fmtDuration(saldo, app.durationFmt),
+		fmtDuration(balance, app.durationFmt),
 	}
 }
 

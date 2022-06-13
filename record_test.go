@@ -23,7 +23,7 @@ func TestStartRecordAllreadyActive(t *testing.T) {
 	tdb := withDb("someRecordsWithStartNew.csv", t)
 	defer tdb.Close()
 	err := tdb.StartRecord(parseTime("2022-02-02T09:17:02+01:00"))
-	if !errors.Is(err, ActiveRecordExistsError) {
+	if !errors.Is(err, ErrActiveRecordExists) {
 		t.Fatal("Expected ActiveRecordExistsError. Got", err)
 	}
 	expected := withDb("someRecordsWithStartNew.csv", t)
@@ -44,7 +44,7 @@ func TestEndRecordNotFound(t *testing.T) {
 	tdb := withDb("someRecordsWithEnd.csv", t)
 	defer tdb.Close()
 	err := tdb.EndRecord(parseTime("2022-02-02T17:59:00+01:00"))
-	if !errors.Is(err, NoActiveRecordError) {
+	if !errors.Is(err, ErrNoActiveRecord) {
 		t.Fatal("Expected NoActiveRecordError. Got", err)
 	}
 	expected := withDb("someRecordsWithEnd.csv", t)

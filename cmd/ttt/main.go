@@ -89,7 +89,7 @@ func (app *appCtx) ParseCmd() {
 			case "decimal":
 				app.durationFmt = decimal
 			default:
-				return errors.New("Unrecognized duration format. Please use clock|hours|decimal")
+				return errors.New("unrecognized duration format")
 			}
 			return nil
 		})

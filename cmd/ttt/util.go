@@ -5,11 +5,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func quitErr(err error) {
@@ -32,25 +30,4 @@ func isFile(filename string) bool {
 		return false
 	}
 	return !info.IsDir()
-}
-
-func askConfirm(prompt string, a ...interface{}) bool {
-	switch strings.ToLower(ask(prompt+" [Y/n] ", a...)) {
-	case "y", "":
-		return true
-	case "n":
-		return false
-	default:
-		return askConfirm(prompt)
-	}
-}
-
-func ask(prompt string, a ...interface{}) string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf(prompt, a...)
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		quitErr(err)
-	}
-	return strings.TrimRight(text, "\r\n")
 }

@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	ActiveRecordExistsError = errors.New("active record already exists")
-	NoActiveRecordError     = errors.New("no active record exists")
+	ErrActiveRecordExists = errors.New("active record already exists")
+	ErrNoActiveRecord     = errors.New("no active record exists")
 )
 
 type Record struct {
@@ -40,7 +40,7 @@ func (t *TimeTrackingDb) StartRecord(dts time.Time) error {
 		return err
 	}
 	if rec.Active() {
-		return fmt.Errorf("%w", ActiveRecordExistsError)
+		return fmt.Errorf("%w", ErrActiveRecordExists)
 	} else {
 		rec.Start = &dts
 		_, err := t.db.Exec("INSERT INTO records (start) VALUES(?);", rec.Start)
@@ -55,15 +55,15 @@ func (t *TimeTrackingDb) EndRecord(dts time.Time) error {
 	}
 	if rec.Active() {
 		rec.End = &dts
-		_, err := t.db.Exec("UPDATE records SET end=? WHERE rowid=?;", rec.End, rec.id)
+		_, err := t.db.Exec("UPDATE records SET end=? WHERE rowId=?;", rec.End, rec.id)
 		return err
 	} else {
-		return fmt.Errorf("%w", NoActiveRecordError)
+		return fmt.Errorf("%w", ErrNoActiveRecord)
 	}
 }
 
 func (t *TimeTrackingDb) GetCurrentRecord() (Record, error) {
-	row := t.db.QueryRow("SELECT r.rowid, r.start, r.end FROM records AS r WHERE r.end IS NULL or r.end = '';")
+	row := t.db.QueryRow("SELECT r.rowId, r.start, r.end FROM records AS r WHERE r.end IS NULL or r.end = '';")
 	rec := Record{}
 	err := row.Scan(&rec.id, &rec.Start, &rec.End)
 	if err == sql.ErrNoRows {
