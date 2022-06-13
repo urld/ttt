@@ -24,8 +24,9 @@ type appCtx struct {
 	durationFmt
 	resolution time.Duration
 
-	cmd    command
-	opTime time.Time
+	cmd     command
+	opTime  time.Time
+	comment string
 
 	ctx context.Context
 }
@@ -65,9 +66,11 @@ func (app *appCtx) End() {
 	quitErr(err)
 
 }
-func (app *appCtx) RecordDay() {
-
-	err := app.AddRecord(app.opTime)
+func (app *appCtx) RecordAbsence() {
+	if app.comment == "" {
+		app.comment = "x"
+	}
+	err := app.AddAbsence(app.opTime, app.comment)
 	quitErr(err)
 }
 
@@ -118,7 +121,7 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 		var aggrWorked, aggrWork time.Duration
 		var previous ttt.BusinessDay
 
-		tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "balance"})
+		tw.AppendHeader(table.Row{"week", "date", "worked", "delta", "balance", "absence"})
 
 		for d := range days {
 			if d.ISOWeek != previous.ISOWeek && previous.ISOWeek != 0 {
@@ -137,8 +140,9 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 			totalWork += d.WorkHours
 			aggrWorked += effWorked
 			aggrWork += d.WorkHours
+
 			// print day
-			tw.AppendRow(app.dayRow(d.Date, d.WorkedHours, delta, balance))
+			tw.AppendRow(app.dayRow(d.Date, effWorked, delta, balance, d.Absence))
 			previous = d
 		}
 		tw.AppendRow(app.weekRow(previous.ISOWeek, aggrWorked, aggrWorked-aggrWork))
@@ -148,13 +152,14 @@ func (app *appCtx) AggregateReport(ctx context.Context, days <-chan ttt.Business
 	return ec
 }
 
-func (app *appCtx) dayRow(date time.Time, worked, delta, balance time.Duration) table.Row {
+func (app *appCtx) dayRow(date time.Time, worked, delta, balance time.Duration, absence string) table.Row {
 	return table.Row{
 		"",
 		fmtDate(date),
 		fmtDuration(worked, app.durationFmt),
 		fmtDuration(delta, app.durationFmt),
 		fmtDuration(balance, app.durationFmt),
+		fmtAbsence(absence),
 	}
 }
 

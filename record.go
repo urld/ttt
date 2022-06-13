@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -20,14 +19,10 @@ var (
 )
 
 type Record struct {
-	id    int
-	Start *time.Time
-	End   *time.Time
-	tags  string
-}
-
-func (r *Record) Tags() []string {
-	return strings.Split(r.tags, ",")
+	id      int
+	Start   *time.Time
+	End     *time.Time
+	Absence string
 }
 
 func (r *Record) Active() bool {
@@ -72,7 +67,7 @@ func (t *TimeTrackingDb) GetCurrentRecord() (Record, error) {
 	return rec, err
 }
 
-func (t *TimeTrackingDb) AddRecord(day time.Time, tags ...string) error {
-	//TODO
-	return nil
+func (t *TimeTrackingDb) AddAbsence(time time.Time, absence string) error {
+	_, err := t.db.Exec("INSERT INTO records (start,end,absence) VALUES(?,?,?);", time, time, absence)
+	return err
 }

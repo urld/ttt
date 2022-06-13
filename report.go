@@ -7,13 +7,14 @@ package ttt
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func (t *TimeTrackingDb) GetRecords(ctx context.Context, from, to time.Time) (<-chan Record, <-chan error, error) {
-	rows, err := t.db.Query("SELECT r.start, r.end, r.tags FROM records AS r WHERE r.Start BETWEEN ? AND ? AND r.End IS NOT NULL ORDER BY r.start;",
+	rows, err := t.db.Query("SELECT r.start, r.end, r.absence FROM records AS r WHERE r.Start BETWEEN ? AND ? AND r.End IS NOT NULL ORDER BY r.start;",
 		from, to)
 	if err != nil {
 		return nil, nil, err
@@ -27,14 +28,14 @@ func (t *TimeTrackingDb) GetRecords(ctx context.Context, from, to time.Time) (<-
 		defer close(ec)
 
 		for rows.Next() {
-			var tags sql.NullString
+			var absence sql.NullString
 			var record Record
-			err = rows.Scan(&record.Start, &record.End, &tags)
+			err = rows.Scan(&record.Start, &record.End, &absence)
 			if err != nil {
 				ec <- err
 			}
-			if tags.Valid {
-				record.tags = tags.String
+			if absence.Valid {
+				record.Absence = strings.TrimSpace(absence.String)
 			}
 
 			select {
@@ -75,10 +76,18 @@ func (t *TimeTrackingDb) GetBusinessDays(ctx context.Context, records <-chan Rec
 			}
 			// aggregate values
 			day.WorkedHours += rec.End.Sub(*rec.Start)
+			if rec.Absence != "" {
+				// later absence reasons have precedence
+				day.Absence = rec.Absence
+			}
 			if prevEnd != (time.Time{}) {
 				day.BreakHours += rec.Start.Sub(prevEnd)
 			}
 			prevEnd = *rec.End
+		}
+		if day != (BusinessDay{}) {
+			// last one needs to be sent too
+			out <- day
 		}
 	}()
 	return out, ec, nil
@@ -90,14 +99,21 @@ type BusinessDay struct {
 	WorkedHours time.Duration
 	WorkHours   time.Duration
 	BreakHours  time.Duration
+	Absence     string
 }
 
 func (t *TimeTrackingDb) EffWorkedHours(day BusinessDay) time.Duration {
+	worked := day.WorkedHours
 	if day.WorkedHours > t.config.breakThreshold {
+		// apply break deduction
 		effDeduction := max(0, t.config.breakDeduction-day.BreakHours)
-		return max(day.WorkedHours-effDeduction, t.config.breakThreshold)
+		worked = max(day.WorkedHours-effDeduction, t.config.breakThreshold)
 	}
-	return day.WorkedHours
+	if day.Absence != "" {
+		// apply absence compensation
+		worked = max(day.WorkHours, worked)
+	}
+	return worked
 }
 
 func max(x, y time.Duration) time.Duration {

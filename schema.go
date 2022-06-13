@@ -94,7 +94,7 @@ func schemaPatches() []schemaPatch {
 			"INSERT INTO config VALUES('sunday_hours', '0h');",
 			"INSERT INTO config VALUES('holidays', 'AT');",
 
-			"CREATE TABLE records (start datetime, end datetime, tags text);",
+			"CREATE TABLE records (start datetime, end datetime, absence text);",
 		},
 	}
 

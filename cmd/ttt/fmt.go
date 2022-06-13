@@ -22,6 +22,13 @@ func fmtDurationTrim(d time.Duration, style durationFmt) string {
 	return strings.TrimSpace(fmtDuration(d, style))
 }
 
+func fmtAbsence(a string) string {
+	if a != "" {
+		return "x"
+	}
+	return a
+}
+
 func fmtDuration(d time.Duration, style durationFmt) string {
 	d = d.Round(time.Minute)
 	h := d / time.Hour

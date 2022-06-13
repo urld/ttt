@@ -23,7 +23,7 @@ The commands are:
 	start
 	end
 	status
-	day
+	absent
 	report
 
 The options are:
@@ -50,8 +50,8 @@ func main() {
 		app.End()
 	case statusCmd:
 		app.Status()
-	case recordDayCmd:
-		app.RecordDay()
+	case absentCmd:
+		app.RecordAbsence()
 	case reportCmd:
 		app.Report(time.Now().Add(time.Hour*24*-365), time.Now())
 	case defaultCmd:
@@ -63,12 +63,12 @@ func main() {
 type command string
 
 const (
-	startCmd     command = "start"
-	endCmd       command = "end"
-	statusCmd    command = "status"
-	recordDayCmd command = "day"
-	reportCmd    command = "report"
-	defaultCmd   command = ""
+	startCmd   command = "start"
+	endCmd     command = "end"
+	statusCmd  command = "status"
+	absentCmd  command = "absent"
+	reportCmd  command = "report"
+	defaultCmd command = ""
 )
 
 func (app *appCtx) ParseCmd() {
@@ -79,6 +79,7 @@ func (app *appCtx) ParseCmd() {
 	defaultFilename := filepath.Join(user.HomeDir, ".ttt.sqlite")
 
 	app.filename = *flag.String("file", defaultFilename, "specify the ttt database")
+	app.comment = *flag.String("comment", "", "comment for certain commands (e.g. absence reason)")
 	flag.Func("duration", "the `format` that is used to print durations: clock|hours|decimal (default \"clock\")",
 		func(arg string) error {
 			switch arg {
@@ -93,12 +94,14 @@ func (app *appCtx) ParseCmd() {
 			}
 			return nil
 		})
-	flag.Func("time", "specify record start or end time with 1m resolution. format=now|HH:mm|YYYY-MM-DD HH:mm (default \"now\" with specified resolution)",
+	flag.Func("time", "specify record start or end time. format=now|HH:mm|YYYY-MM-DD|YYYY-MM-DD HH:mm (default \"now\")",
 		func(arg string) error {
 			if arg == "now" {
 				app.opTime = time.Now().Round(time.Minute)
-			} else if len(arg) > 5 {
+			} else if len(arg) > 10 {
 				app.opTime, err = time.Parse("2006-01-02 15:04", arg)
+			} else if len(arg) > 5 {
+				app.opTime, err = time.Parse("2006-01-02", arg)
 			} else {
 				app.opTime, err = time.Parse("15:04", arg)
 			}
